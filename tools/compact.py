@@ -63,27 +63,32 @@ def main() -> int:
     n_src = len(list(SRC.glob("*.parquet")))
     print(f"  nguồn : {SRC}  ({n_src:,} file)")
 
-    # TODO(nhiệm vụ 4): hiện thực khung COPY ... TO ... ở phần docstring.
-    #
-    #   con.execute(f"""
-    #       copy (
-    #           select * from read_parquet('{SRC}/*.parquet')
-    #           order by ...
-    #       ) to '{DST}' (
-    #           format parquet,
-    #           partition_by (...),
-    #           overwrite_or_ignore,
-    #           row_group_size ...
-    #       )
-    #   """)
-    #
-    # Sau đó kiểm tra không mất hàng nào:
-    #
-    #   assert <số row dataset cũ> == <số row dataset mới>
+    n_before = con.execute(
+        f"select count(*) from read_parquet('{SRC}/*.parquet')"
+    ).fetchone()[0]
 
-    print("\n  tools/compact.py chưa được hiện thực — đây là nhiệm vụ 4.")
-    print("  Mở file này, đọc phần KHUNG THỰC HIỆN ở đầu file và điền vào TODO.")
-    print("  Hướng dẫn từng bước: GUIDE.md mục 4.\n")
+    import shutil
+    shutil.rmtree(DST, ignore_errors=True)
+
+    con.execute(f"""
+        copy (
+            select * from read_parquet('{SRC}/*.parquet')
+            order by event_date, customer_name
+        ) to '{DST}' (
+            format parquet,
+            partition_by (event_date),
+            overwrite_or_ignore,
+            row_group_size 1000
+        )
+    """)
+
+    n_after = con.execute(
+        f"select count(*) from read_parquet('{DST}/**/*.parquet', hive_partitioning=true)"
+    ).fetchone()[0]
+    assert n_before == n_after, f"mất hàng: {n_before:,} -> {n_after:,}"
+
+    n_files = len(list(DST.glob("**/*.parquet")))
+    print(f"  đích  : {DST}  ({n_files:,} file, {n_after:,} hàng — khớp nguồn)\n")
     return 0
 
 

@@ -6,6 +6,7 @@ DBT     := $(VENV)/bin/dbt
 
 export LAB17_DB := $(CURDIR)/warehouse.duckdb
 export DBT_PROFILES_DIR := $(CURDIR)/dbt
+export PYTHONUTF8 := 1
 
 .DEFAULT_GOAL := help
 .PHONY: help setup seed seed-extra pipeline verify quick explain plan dbt-test \
@@ -21,7 +22,7 @@ help:  ## danh sách lệnh
 
 setup:  ## venv + thư viện + sinh dữ liệu (chạy một lần)
 	@test -d $(VENV) || python3 -m venv $(VENV)
-	@$(PIP) install -q --upgrade pip
+	@$(PY) -m pip install -q --upgrade pip
 	@$(PIP) install -q -r requirements.txt
 	@$(PY) seed/generate.py
 	@echo ""
